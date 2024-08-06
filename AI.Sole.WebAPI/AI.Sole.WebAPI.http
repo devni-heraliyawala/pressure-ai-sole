@@ -1,0 +1,6 @@
+@AI.Sole.WebAPI_HostAddress = http://localhost:5082
+
+GET {{AI.Sole.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

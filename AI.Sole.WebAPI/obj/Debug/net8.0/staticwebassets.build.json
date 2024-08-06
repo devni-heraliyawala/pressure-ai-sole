@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "SNtH3B45rSuQaLmiYkxQC443NWG9Fope1E7WdOiGxDs=",
+  "Source": "AI.Sole.WebAPI",
+  "BasePath": "_content/AI.Sole.WebAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
