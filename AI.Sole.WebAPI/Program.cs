@@ -12,8 +12,17 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson.Serialization;
 using System.Net.WebSockets;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 
 var builder = WebApplication.CreateBuilder(args);
+
+string pathToFirebaseConfigJsonFile = Path.Combine(Directory.GetCurrentDirectory(), "firebaseConfig.json");
+
+FirebaseApp.Create(new AppOptions()
+{
+    Credential = GoogleCredential.FromFile(pathToFirebaseConfigJsonFile)
+});
 // Add services to the DI container.
 var services = builder.Services;
 var configuration = builder.Configuration;

@@ -1,5 +1,6 @@
 using Amazon.Runtime.Internal;
 using Duende.IdentityServer.Services;
+using FirebaseAdmin.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -1129,6 +1130,43 @@ namespace AI.Sole.WebAPI.Controllers
             return Ok("Report deleted!");
         }
         #endregion
+        #endregion
+
+
+        #region Notifications
+        [HttpPost("notifications")]
+        public async Task<IActionResult> SendNotification([FromBody] NotificationDto notificationDto)
+        {
+            if (notificationDto == null || string.IsNullOrEmpty(notificationDto.DeviceToken))
+            {
+                return BadRequest("Invalid notification data.");
+            }
+
+            var message = new Message()
+            {
+                
+                Notification = new Notification
+                {
+                    Title = notificationDto.Title,
+                    Body = notificationDto.Message
+
+                },
+               Token = notificationDto.DeviceToken
+            };
+
+            // Send the message using Firebase Messaging
+            try
+            {
+                string response = await FirebaseMessaging.DefaultInstance.SendAsync(message);
+                return Ok(new { message = "Notification sent successfully.", response });
+            }
+            catch (FirebaseMessagingException e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Failed to send message: {e.Message}");
+
+            }
+        }
+
         #endregion
     }
 }

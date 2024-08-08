@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AI.Sole.WebAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e6f3123f2b3c92752ebf9b63813e636b1db9ecf2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+14496c102d1b92b96395cde653df6d2b82cf3fd7")]
 [assembly: System.Reflection.AssemblyProductAttribute("AI.Sole.WebAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AI.Sole.WebAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

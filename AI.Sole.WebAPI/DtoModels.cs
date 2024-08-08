@@ -192,4 +192,14 @@ namespace AI.Sole.WebAPI
         public List<PressureData> PressurePoints { get; set; } = new List<PressureData>();
     }
     #endregion
+
+    #region Notifications
+    public class NotificationDto
+    {
+        public string DeviceToken { get; set; }  // ID of the user to receive the notification
+        public string Message { get; set; }  // Message content of the notification
+        public string Title { get; set; }  // Title of the notification
+    }
+
+    #endregion
 }

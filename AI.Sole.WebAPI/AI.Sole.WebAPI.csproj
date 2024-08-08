@@ -11,6 +11,8 @@
     <PackageReference Include="AspNetCore.IdentityServer.Mongo" Version="1.1.1" />
     <PackageReference Include="Duende.IdentityServer" Version="7.0.6" />
     <PackageReference Include="Duende.IdentityServer.AspNetIdentity" Version="7.0.6" />
+    <PackageReference Include="FirebaseAdmin" Version="3.0.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.7" />
