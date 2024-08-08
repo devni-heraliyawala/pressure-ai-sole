@@ -1,0 +1,18 @@
+2024-08-08 14:34:19.228 +05:30 [INF] Starting Duende IdentityServer version 7.0.6+765116a2d4fb0671b6eba015e698533900c61c8e (.NET 8.0.3)
+2024-08-08 14:34:19.285 +05:30 [WRN] You do not have a valid license key for the Duende software. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please start a conversation with us: https://duendesoftware.com/contact
+2024-08-08 14:34:19.287 +05:30 [WRN] You have automatic key management enabled, but you do not have a license. This feature requires the Business or Enterprise Edition tier of license. Alternatively you can disable automatic key management by setting the KeyManagement.Enabled property to false on the IdentityServerOptions.
+2024-08-08 14:34:19.292 +05:30 [INF] You are using the in-memory version of the persisted grant store. This will store consent decisions, authorization codes, refresh and reference tokens in memory only. If you are using any of those features in production, you want to switch to a different store implementation.
+2024-08-08 14:34:19.296 +05:30 [INF] Using the default authentication scheme Bearer for IdentityServer
+2024-08-08 14:34:19.298 +05:30 [INF] Authentication scheme Bearer is configured for IdentityServer, but it is not a scheme that supports signin (like cookies). If you support interactive logins via the browser, then a cookie-based scheme should be used.
+2024-08-08 14:34:19.448 +05:30 [INF] Starting up
+2024-08-08 14:34:59.197 +05:30 [INF] Registering a user!
+2024-08-08 14:34:59.672 +05:30 [INF] HTTP POST /api/users/register responded 200 in 811.4462 ms
+2024-08-08 14:50:23.720 +05:30 [INF] Starting Duende IdentityServer version 7.0.6+765116a2d4fb0671b6eba015e698533900c61c8e (.NET 8.0.3)
+2024-08-08 14:50:23.779 +05:30 [WRN] You do not have a valid license key for the Duende software. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please start a conversation with us: https://duendesoftware.com/contact
+2024-08-08 14:50:23.781 +05:30 [WRN] You have automatic key management enabled, but you do not have a license. This feature requires the Business or Enterprise Edition tier of license. Alternatively you can disable automatic key management by setting the KeyManagement.Enabled property to false on the IdentityServerOptions.
+2024-08-08 14:50:23.786 +05:30 [INF] You are using the in-memory version of the persisted grant store. This will store consent decisions, authorization codes, refresh and reference tokens in memory only. If you are using any of those features in production, you want to switch to a different store implementation.
+2024-08-08 14:50:23.790 +05:30 [INF] Using the default authentication scheme Bearer for IdentityServer
+2024-08-08 14:50:23.791 +05:30 [INF] Authentication scheme Bearer is configured for IdentityServer, but it is not a scheme that supports signin (like cookies). If you support interactive logins via the browser, then a cookie-based scheme should be used.
+2024-08-08 14:50:23.935 +05:30 [INF] Starting up
+2024-08-08 14:50:33.431 +05:30 [INF] Registering a user!
+2024-08-08 14:50:57.282 +05:30 [INF] HTTP POST /api/users/register responded 200 in 26587.7448 ms

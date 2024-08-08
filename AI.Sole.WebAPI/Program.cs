@@ -14,8 +14,24 @@ using MongoDB.Bson.Serialization;
 using System.Net.WebSockets;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var services = builder.Services;
+var configuration = builder.Configuration;
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 string pathToFirebaseConfigJsonFile = Path.Combine(Directory.GetCurrentDirectory(), "firebaseConfig.json");
 
@@ -23,13 +39,8 @@ FirebaseApp.Create(new AppOptions()
 {
     Credential = GoogleCredential.FromFile(pathToFirebaseConfigJsonFile)
 });
+
 // Add services to the DI container.
-var services = builder.Services;
-var configuration = builder.Configuration;
-
-// Add services to the container.
-
-
 AppSettingsHelper.AppSettingsConfigure(builder.Configuration);
 
 // Configure MongoDB
@@ -87,6 +98,19 @@ services.AddAuthentication(options =>
         ValidAudience = issuer,
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
+});
+
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+})
+.AddCookie()
+.AddGoogle(googleOptions =>
+{
+    googleOptions.ClientId = "757534719785-6pvn7vmnte9mjkqgisrtur3fdu633fij.apps.googleusercontent.com";
+    googleOptions.ClientSecret = "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";
 });
 
 services.AddAuthorization(options =>
@@ -175,12 +199,29 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+
+// Enable Serilog request logging
+app.UseSerilogRequestLogging();
 app.UseAuthorization();
 
 app.UseIdentityServer();
 
 app.MapControllers()
     .RequireAuthorization("ApiScope");
+
+try
+{
+    Log.Information("Starting up");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application start-up failed");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 app.UseWebSockets();  // Enable WebSocket support
 app.Use(async (context, next) =>
@@ -203,7 +244,19 @@ app.Use(async (context, next) =>
     }
 });
 
- async Task HandleWebSocketAsync(WebSocket webSocket)
+
+
+using (var scope = app.Services.CreateScope())
+{
+    var services1 = scope.ServiceProvider;
+    var userManager = services1.GetRequiredService<UserManager<ApplicationUser>>();
+    await SeedData.Initialize(services1, userManager);
+}
+
+
+app.Run();
+
+async Task HandleWebSocketAsync(WebSocket webSocket)
 {
     var buffer = new byte[1024 * 4];
     WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
@@ -221,17 +274,6 @@ app.Use(async (context, next) =>
     // Close the WebSocket connection gracefully
     await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
 }
-
-
-using (var scope = app.Services.CreateScope())
-{
-    var services1 = scope.ServiceProvider;
-    var userManager = services1.GetRequiredService<UserManager<ApplicationUser>>();
-    await SeedData.Initialize(services1, userManager);
-}
-
-
-app.Run();
 
 void RegisterClassMaps()
 {

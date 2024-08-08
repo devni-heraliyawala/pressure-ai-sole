@@ -1,0 +1,122 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|d:\\personal\\business\\devni\\knights\\pressure-ai-sole\\ai.sole.webapi\\controllers\\maincontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|solutionrelative:ai.sole.webapi\\controllers\\maincontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|d:\\personal\\business\\devni\\knights\\pressure-ai-sole\\ai.sole.webapi\\entity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|solutionrelative:ai.sole.webapi\\entity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|d:\\personal\\business\\devni\\knights\\pressure-ai-sole\\ai.sole.webapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|solutionrelative:ai.sole.webapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|d:\\personal\\business\\devni\\knights\\pressure-ai-sole\\ai.sole.webapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|solutionrelative:ai.sole.webapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|d:\\personal\\business\\devni\\knights\\pressure-ai-sole\\ai.sole.webapi\\identityconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|solutionrelative:ai.sole.webapi\\identityconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|d:\\personal\\business\\devni\\knights\\pressure-ai-sole\\ai.sole.webapi\\firebaseconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{F0D7B33F-2692-418F-9FB2-B3AF882AEC0B}|AI.Sole.WebAPI\\AI.Sole.WebAPI.csproj|solutionrelative:ai.sole.webapi\\firebaseconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 4,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\appsettings.json",
+              "RelativeDocumentMoniker": "AI.Sole.WebAPI\\appsettings.json",
+              "ToolTip": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\appsettings.json",
+              "RelativeToolTip": "AI.Sole.WebAPI\\appsettings.json",
+              "ViewState": "AQIAAAMAAAAAAAAAAAAAACAAAAATAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2024-08-08T09:02:45.555Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\Program.cs",
+              "RelativeDocumentMoniker": "AI.Sole.WebAPI\\Program.cs",
+              "ToolTip": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\Program.cs",
+              "RelativeToolTip": "AI.Sole.WebAPI\\Program.cs",
+              "ViewState": "AQIAALgAAAAAAAAAAAAuwNQAAAABAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-08-08T08:19:15.901Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "IdentityConfig.cs",
+              "DocumentMoniker": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\IdentityConfig.cs",
+              "RelativeDocumentMoniker": "AI.Sole.WebAPI\\IdentityConfig.cs",
+              "ToolTip": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\IdentityConfig.cs",
+              "RelativeToolTip": "AI.Sole.WebAPI\\IdentityConfig.cs",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-08-08T08:01:00.465Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Entity.cs",
+              "DocumentMoniker": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\Entity.cs",
+              "RelativeDocumentMoniker": "AI.Sole.WebAPI\\Entity.cs",
+              "ToolTip": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\Entity.cs",
+              "RelativeToolTip": "AI.Sole.WebAPI\\Entity.cs",
+              "ViewState": "AQIAADoAAAAAAAAAAAAAAEYAAAAgAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-08-08T08:00:50.252Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MainController.cs",
+              "DocumentMoniker": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\Controllers\\MainController.cs",
+              "RelativeDocumentMoniker": "AI.Sole.WebAPI\\Controllers\\MainController.cs",
+              "ToolTip": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\Controllers\\MainController.cs",
+              "RelativeToolTip": "AI.Sole.WebAPI\\Controllers\\MainController.cs",
+              "ViewState": "AQIAABoAAAAAAAAAAAAUwJgCAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-08-08T08:00:39.054Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "firebaseConfig.json",
+              "DocumentMoniker": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\firebaseConfig.json",
+              "RelativeDocumentMoniker": "AI.Sole.WebAPI\\firebaseConfig.json",
+              "ToolTip": "D:\\Personal\\Business\\Devni\\Knights\\pressure-ai-sole\\AI.Sole.WebAPI\\firebaseConfig.json",
+              "RelativeToolTip": "AI.Sole.WebAPI\\firebaseConfig.json",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2024-08-08T08:00:34.247Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

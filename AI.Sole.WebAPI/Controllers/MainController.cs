@@ -23,6 +23,7 @@ namespace AI.Sole.WebAPI.Controllers
     [Route("api")]
     public class MainController : ControllerBase
     {
+        private readonly ILogger<MainController> _logger;
 
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
@@ -32,13 +33,14 @@ namespace AI.Sole.WebAPI.Controllers
 
 
         public MainController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, RoleManager<ApplicationRole> roleManager
-            , IEmailService emailService, MongoDbContext context)
+            , IEmailService emailService, MongoDbContext context, ILogger<MainController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _emailService = emailService;
             _context = context;
+            _logger = logger;
         }
 
         // User Management
@@ -48,11 +50,18 @@ namespace AI.Sole.WebAPI.Controllers
         // User Management
         [HttpPost("users/register")]
         [AllowAnonymous]
-        public async Task<IActionResult> RegisterUser([FromBody] UserRegistrationDto dto)
+        public async Task<ApiResponse<GenericResponse<ApplicationUser>>> RegisterUser([FromBody] UserRegistrationDto dto)
         {
+            _logger.LogInformation("Registering a user!");
+
             if (!await _roleManager.RoleExistsAsync(dto.Role))
             {
-                return StatusCode(StatusCodes.Status406NotAcceptable, "Role doesn't exists");
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = "Role doesn't exist",
+                    Data = new GenericResponse<ApplicationUser> { Result = null, Status = "NotAcceptable" }
+                };
             }
 
             var user = new ApplicationUser { UserName = dto.Username, Email = dto.Email, FirstName = dto.FirstName, LastName = dto.LastName, Address = dto.Address, RegistredOn = DateTime.UtcNow };
@@ -63,10 +72,21 @@ namespace AI.Sole.WebAPI.Controllers
                 await _userManager.AddToRoleAsync(user, dto.Role);
                 //await _signInManager.SignInAsync(user, isPersistent: false);
                 // Optionally sign-in the user or confirm email
-                return Ok(new { userId = user.Id });
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = true,
+                    Message = "User registered successfully",
+                    Data = new GenericResponse<ApplicationUser> { Result = user, Status = "OK" }
+                };
             }
+            var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
 
-            return BadRequest(result.Errors);
+            return new ApiResponse<GenericResponse<ApplicationUser>>
+            {
+                Success = false,
+                Message = $"User registration failed. {errorDescriptions}",
+                Data = new GenericResponse<ApplicationUser> { Result = null, Status = "BadRequest" }
+            };
         }
         #endregion
 
@@ -74,7 +94,7 @@ namespace AI.Sole.WebAPI.Controllers
         [HttpPost("users/login")]
         [AllowAnonymous]
 
-        public async Task<IActionResult> Login([FromBody] LoginDto dto)
+        public async Task<ApiResponse<GenericResponse<string>>> Login([FromBody] LoginDto dto)
         {
             var user = await _userManager.FindByNameAsync(dto.Username);
             if (user != null)
@@ -82,7 +102,12 @@ namespace AI.Sole.WebAPI.Controllers
                 // Check if the account is locked out
                 if (await _userManager.IsLockedOutAsync(user))
                 {
-                    return StatusCode(StatusCodes.Status403Forbidden, new { message = "Your account is locked out. Please try again later." });
+                    return new ApiResponse<GenericResponse<string>>
+                    {
+                        Success = false,
+                        Message = "Your account is locked out. Please try again later.",
+                        Data = new GenericResponse<string> { Result = null, Status = "Forbidden" }
+                    };
                 }
 
                 if (await _userManager.CheckPasswordAsync(user, dto.Password))
@@ -97,7 +122,12 @@ namespace AI.Sole.WebAPI.Controllers
                     var secretKey = Globals.JWT_SECRET_KEY;
                     if (string.IsNullOrEmpty(secretKey))
                     {
-                        return StatusCode(StatusCodes.Status500InternalServerError, "Secret key not configured.");
+                        return new ApiResponse<GenericResponse<string>>
+                        {
+                            Success = false,
+                            Message = "Secret key not configured.",
+                            Data = new GenericResponse<string> { Result = null, Status = "InternalServerError" }
+                        };
                     }
                     var key = Convert.FromBase64String(secretKey);
                     var tokenDescriptor = new SecurityTokenDescriptor
@@ -118,7 +148,12 @@ namespace AI.Sole.WebAPI.Controllers
                     var token = tokenHandler.CreateToken(tokenDescriptor);
                     var tokenString = tokenHandler.WriteToken(token);
 
-                    return Ok(new { Token = tokenString });
+                    return new ApiResponse<GenericResponse<string>>
+                    {
+                        Success = true,
+                        Message = string.Empty,
+                        Data = new GenericResponse<string> { Result = tokenString, Status = "Ok" }
+                    };
                 }
                 else
                 {
@@ -128,14 +163,28 @@ namespace AI.Sole.WebAPI.Controllers
                     // Check if the account is locked out after incrementing the failed attempts
                     if (await _userManager.IsLockedOutAsync(user))
                     {
-                        return StatusCode(StatusCodes.Status403Forbidden, new { message = "Your account is locked out. Please try again later." });
+                        return new ApiResponse<GenericResponse<string>>
+                        {
+                            Success = false,
+                            Message = "Your account is locked out. Please try again later.",
+                            Data = new GenericResponse<string> { Result = null, Status = "Forbidden" }
+                        };
                     }
-
-                    return Unauthorized("Invalid login attempt.");
+                    return new ApiResponse<GenericResponse<string>>
+                    {
+                        Success = false,
+                        Message = "Invalid login attempt.",
+                        Data = new GenericResponse<string> { Result = null, Status = "Unauthorized" }
+                    };
                 }
             }
 
-            return Unauthorized();
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = false,
+                Message = "Unauthorized",
+                Data = new GenericResponse<string> { Result = null, Status = "Unauthorized" }
+            };
         }
 
         #endregion
@@ -143,10 +192,15 @@ namespace AI.Sole.WebAPI.Controllers
         #region Logout User
         [HttpPost("users/logout")]
         [Authorize]
-        public async Task<IActionResult> Logout()
+        public async Task<ApiResponse<GenericResponse<string>>> Logout()
         {
             await _signInManager.SignOutAsync();
-            return Ok(new { message = "Logged out successfully" });
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = "User logged out successfully!",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
 
         #endregion
@@ -154,22 +208,31 @@ namespace AI.Sole.WebAPI.Controllers
         #region Forgot Password
         [HttpPost("users/forgot-password")]
         [AllowAnonymous]
-        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+        public async Task<ApiResponse<GenericResponse<string>>> ForgotPassword(ForgotPasswordDto dto)
         {
             var request = HttpContext.Request;
             var user = await _userManager.FindByEmailAsync(dto.Email);
             if (user == null)
             {
                 // Do not reveal that the user does not exist
-                return Ok();
-
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = true,
+                    Message = string.Empty,
+                    Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+                };
             }
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             var baseUrl = $"{request.Scheme}://{request.Host}";
             var resetLink = $"{baseUrl}/Account/ResetPassword?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(dto.Email)}";
 
             await _emailService.SendPasswordResetEmailAsync(dto.Email, resetLink);
-            return Ok("Password reset link has been sent to your email.");
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = "Password reset link has been sent to your email.",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
 
         #endregion
@@ -177,13 +240,18 @@ namespace AI.Sole.WebAPI.Controllers
         #region Reset Password
         [HttpPost("users/reset-password")]
         [AllowAnonymous]
-        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+        public async Task<ApiResponse<GenericResponse<string>>> ResetPassword(ResetPasswordDto dto)
         {
             var user = await _userManager.FindByEmailAsync(dto.Email);
             if (user == null)
             {
                 // Do not reveal that the user does not exist
-                return Ok();
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = true,
+                    Message = string.Empty,
+                    Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+                };
             }
 
             var decodedToken = WebUtility.UrlDecode(dto.Token);
@@ -191,9 +259,21 @@ namespace AI.Sole.WebAPI.Controllers
             var result = await _userManager.ResetPasswordAsync(user, decodedToken, dto.NewPassword);
             if (!result.Succeeded)
             {
-                return BadRequest(result?.Errors);
+                var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = $"Password reset failed!,{errorDescriptions}",
+                    Data = new GenericResponse<string> { Result = null, Status = "BadRequest" }
+                };
             }
-            return Ok("Password has been reset successfully.");
+
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = "Password has been reset successfully.",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
 
         #endregion
@@ -201,19 +281,29 @@ namespace AI.Sole.WebAPI.Controllers
         #region Send Unlock Email
         [HttpPost("users/send-unlock-email")]
         [AllowAnonymous]
-        public async Task<IActionResult> SendUnlockEmail(UnlockEmailRequestDto dto)
+        public async Task<ApiResponse<GenericResponse<string>>> SendUnlockEmail(UnlockEmailRequestDto dto)
         {
             var request = HttpContext.Request;
 
             var user = await _userManager.FindByEmailAsync(dto.Email);
             if (user == null)
             {
-                return NotFound("User not found");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<string> { Result = null, Status = "NotFound" }
+                };
             }
 
             if (!await _userManager.IsLockedOutAsync(user))
             {
-                return BadRequest("User account is not locked.");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "User account is not locked.",
+                    Data = new GenericResponse<string> { Result = null, Status = "BadRequest" }
+                };
             }
 
             var token = await _userManager.GenerateUserTokenAsync(user, "Default", "AccountUnlock");
@@ -222,70 +312,111 @@ namespace AI.Sole.WebAPI.Controllers
 
             await _emailService.SendAccountUnlockEmailAsync(user.Email, callbackUrl);
 
-            return Ok(new { message = "Unlock email sent successfully." });
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = "Unlock email sent successfully.",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
         #endregion
 
         #region Unlock User
         [HttpPost("users/unlock")]
         [AllowAnonymous]
-        public async Task<IActionResult> UnlockAccount(UnlockAccountDto dto)
+        public async Task<ApiResponse<GenericResponse<string>>> UnlockAccount(UnlockAccountDto dto)
         {
             var user = await _userManager.FindByIdAsync(dto.UserId);
             if (user == null)
             {
-                return NotFound("User not found");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<string> { Result = null, Status = "NotFound" }
+                };
             }
 
             var decodedToken = WebUtility.UrlDecode(dto.Token);
             var result = await _userManager.VerifyUserTokenAsync(user, "Default", "AccountUnlock", decodedToken);
             if (!result)
             {
-                return BadRequest("Invalid token.");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "Invalid token.",
+                    Data = new GenericResponse<string> { Result = null, Status = "BadRequest" }
+                };
             }
 
             user.LockoutEnd = null;
             await _userManager.ResetAccessFailedCountAsync(user);
             await _userManager.UpdateAsync(user);
 
-            return Ok(new { message = "Account unlocked successfully." });
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = "Account unlocked successfully.",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
 
         #endregion
 
         #region Change Password
         [HttpPost("users/change-password")]
-        public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
+        public async Task<ApiResponse<GenericResponse<string>>> ChangePassword(ChangePasswordDto dto)
         {
             var userId = HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _userManager.FindByIdAsync(userId);
 
             if (user == null)
             {
-                return NotFound("User not found");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<string> { Result = null, Status = "NotFound" }
+                };
             }
 
             var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
 
             if (!result.Succeeded)
             {
-                return BadRequest(result.Errors);
+                var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = $"Password change failed!,{errorDescriptions}",
+                    Data = new GenericResponse<string> { Result = null, Status = "BadRequest" }
+                };
             }
 
-            return Ok("Password changed successfully");
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = $"Password reset successfully!",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
         #endregion
 
         #region Get Profile
         [HttpGet("users/profile")]
-        public async Task<IActionResult> GetProfile()
+        public async Task<ApiResponse<GenericResponse<UserProfileDto>>> GetProfile()
         {
             var userId = HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _userManager.FindByIdAsync(userId);
 
             if (user == null)
             {
-                return NotFound("User not found");
+                return new ApiResponse<GenericResponse<UserProfileDto>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<UserProfileDto> { Result = null, Status = "NotFound" }
+                };
             }
             var userRoles = await _userManager.GetRolesAsync(user);
 
@@ -302,30 +433,50 @@ namespace AI.Sole.WebAPI.Controllers
                 Role = userRoles.FirstOrDefault()
             };
 
-            return Ok(userProfile);
+            return new ApiResponse<GenericResponse<UserProfileDto>>
+            {
+                Success = false,
+                Message = string.Empty,
+                Data = new GenericResponse<UserProfileDto> { Result = userProfile, Status = "Pk" }
+            };
         }
         #endregion
 
         #region Update Profile
         [HttpPut("users/profile")]
         [Authorize]
-        public async Task<IActionResult> UpdateProfile(UpdateProfileDto dto)
+        public async Task<ApiResponse<GenericResponse<ApplicationUser>>> UpdateProfile(UpdateProfileDto dto)
         {
             var userId = HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null)
             {
-                return Unauthorized("User ID not found in token.");
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = "User ID not found in token.",
+                    Data = new GenericResponse<ApplicationUser> { Result = null, Status = "Unauthorized" }
+                };
             }
 
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return NotFound("User not found.");
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<ApplicationUser> { Result = null, Status = "NotFound" }
+                };
             }
 
             if (!await _roleManager.RoleExistsAsync(dto.Role))
             {
-                return BadRequest("The specified role does not exist.");
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = "The specified role does not exist.",
+                    Data = new GenericResponse<ApplicationUser> { Result = user, Status = "BadRequest" }
+                };
             }
 
             user.Email = dto.Email ?? user.Email;
@@ -340,7 +491,14 @@ namespace AI.Sole.WebAPI.Controllers
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
-                return BadRequest("Failed to update user profile.");
+                var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = $"Failed to update user profile.{errorDescriptions}",
+                    Data = new GenericResponse<ApplicationUser> { Result = user, Status = "BadRequest" }
+                };
             }
 
             var currentRoles = await _userManager.GetRolesAsync(user);
@@ -349,17 +507,36 @@ namespace AI.Sole.WebAPI.Controllers
                 var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
                 if (!removeResult.Succeeded)
                 {
-                    return BadRequest("Failed to update user role");
+                    var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+
+                    return new ApiResponse<GenericResponse<ApplicationUser>>
+                    {
+                        Success = false,
+                        Message = $"Failed to update user role. {errorDescriptions}",
+                        Data = new GenericResponse<ApplicationUser> { Result = user, Status = "BadRequest" }
+                    };
                 }
             }
 
             var addResult = await _userManager.AddToRoleAsync(user, dto.Role);
             if (!addResult.Succeeded)
             {
-                return BadRequest("Failed to add user to the new role.");
+                var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = $"Failed to add user to the new role. {errorDescriptions}",
+                    Data = new GenericResponse<ApplicationUser> { Result = user, Status = "BadRequest" }
+                };
             }
 
-            return Ok("User profile updated successfully.");
+            return new ApiResponse<GenericResponse<ApplicationUser>>
+            {
+                Success = true,
+                Message = "User profile updated successfully.",
+                Data = new GenericResponse<ApplicationUser> { Result = user, Status = "Ok" }
+            };
         }
         #endregion
 
@@ -371,10 +548,15 @@ namespace AI.Sole.WebAPI.Controllers
         // GET: api/admin/users
         [HttpGet("admin/users")]
         [Authorize(Roles = "systemAdmin")]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<ApiResponse<GenericResponse<List<ApplicationUser>>>> GetAllUsers()
         {
             var users = await _context.Users.AsQueryable().ToListAsync();
-            return Ok(users);
+            return new ApiResponse<GenericResponse<List<ApplicationUser>>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<List<ApplicationUser>> { Result = users, Status = "Ok" }
+            };
         }
         #endregion
 
@@ -382,17 +564,27 @@ namespace AI.Sole.WebAPI.Controllers
         // PUT: api/admin/users/{userId}
         [HttpPut("admin/users/{userId}")]
         [Authorize(Roles = "systemAdmin")]
-        public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateProfileDto dto)
+        public async Task<ApiResponse<GenericResponse<ApplicationUser>>> UpdateUser(string userId, [FromBody] UpdateProfileDto dto)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return NotFound("User not found.");
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<ApplicationUser> { Result = null, Status = "NotFound" }
+                };
             }
 
             if (!await _roleManager.RoleExistsAsync(dto.Role))
             {
-                return BadRequest("The specified role does not exist.");
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = "The specified role does not exist.",
+                    Data = new GenericResponse<ApplicationUser> { Result = user, Status = "BadRequest" }
+                };
             }
 
             user.Email = dto.Email ?? user.Email;
@@ -405,7 +597,14 @@ namespace AI.Sole.WebAPI.Controllers
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
-                return BadRequest("Failed to update user profile.");
+                var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = $"Failed to update user profile.{errorDescriptions}",
+                    Data = new GenericResponse<ApplicationUser> { Result = user, Status = "BadRequest" }
+                };
             }
 
             var currentRoles = await _userManager.GetRolesAsync(user);
@@ -414,18 +613,36 @@ namespace AI.Sole.WebAPI.Controllers
                 var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
                 if (!removeResult.Succeeded)
                 {
-                    return BadRequest("Failed to update user role");
+                    var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+
+                    return new ApiResponse<GenericResponse<ApplicationUser>>
+                    {
+                        Success = false,
+                        Message = $"Failed to update user role. {errorDescriptions}",
+                        Data = new GenericResponse<ApplicationUser> { Result = user, Status = "BadRequest" }
+                    };
                 }
             }
 
             var addResult = await _userManager.AddToRoleAsync(user, dto.Role);
             if (!addResult.Succeeded)
             {
-                return BadRequest("Failed to add user to the new role.");
+                var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = $"Failed to add user to the new role. {errorDescriptions}",
+                    Data = new GenericResponse<ApplicationUser> { Result = user, Status = "BadRequest" }
+                };
             }
 
-            return Ok("User profile updated successfully.");
-
+            return new ApiResponse<GenericResponse<ApplicationUser>>
+            {
+                Success = true,
+                Message = "User profile updated successfully.",
+                Data = new GenericResponse<ApplicationUser> { Result = user, Status = "Ok" }
+            };
         }
         #endregion
 
@@ -433,10 +650,15 @@ namespace AI.Sole.WebAPI.Controllers
         // GET: api/admin/devices
         [HttpGet("admin/devices")]
         [Authorize(Roles = "systemAdmin")]
-        public async Task<IActionResult> GetAllDevices()
+        public async Task<ApiResponse<GenericResponse<List<Device>>>> GetAllDevices()
         {
             var devices = await _context.Devices.Find(_ => true).ToListAsync();
-            return Ok(devices);
+            return new ApiResponse<GenericResponse<List<Device>>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<List<Device>> { Result = devices, Status = "Ok" }
+            };
         }
         #endregion
         #endregion
@@ -447,7 +669,7 @@ namespace AI.Sole.WebAPI.Controllers
         // POST: api/devices/register
         [HttpPost("devices/register")]
         [Authorize(Roles = "doctor,systemAdmin")]
-        public async Task<IActionResult> RegisterDevice([FromBody] RegisterDeviceDto dto)
+        public async Task<ApiResponse<GenericResponse<Device>>> RegisterDevice([FromBody] RegisterDeviceDto dto)
         {
             var newDevice = new Device
             {
@@ -467,7 +689,12 @@ namespace AI.Sole.WebAPI.Controllers
 
             await _context.Devices.InsertOneAsync(newDevice);
 
-            return Ok(new { device = newDevice });
+            return new ApiResponse<GenericResponse<Device>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<Device> { Result = newDevice, Status = "Ok" }
+            };
         }
 
         #endregion
@@ -477,11 +704,27 @@ namespace AI.Sole.WebAPI.Controllers
         // GET: api/devices
         [HttpGet("devices")]
         [Authorize]
-        public async Task<IActionResult> ListUserDevices()
+        public async Task<ApiResponse<GenericResponse<List<Device>>>> ListUserDevices()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId == null)
+            {
+                return new ApiResponse<GenericResponse<List<Device>>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<List<Device>> { Result = null, Status = "NotFound" }
+                };
+            }
+           
             var devices = await _context.Devices.Find(d => d.UserId == userId).ToListAsync();
-            return Ok(devices);
+            return new ApiResponse<GenericResponse<List<Device>>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<List<Device>> { Result = devices, Status = "Ok" }
+            };
         }
         #endregion
 
@@ -489,11 +732,16 @@ namespace AI.Sole.WebAPI.Controllers
         // PUT: api/devices/{deviceId}
         [HttpPut("devices/{deviceId}")]
         [Authorize(Roles = "doctor,systemAdmin")]
-        public async Task<IActionResult> UpdateDevice(string deviceId, [FromBody] UpdateDeviceDto dto)
+        public async Task<ApiResponse<GenericResponse<Device>>> UpdateDevice(string deviceId, [FromBody] UpdateDeviceDto dto)
         {
             if (!ObjectId.TryParse(deviceId, out ObjectId validObjectId))
             {
-                return BadRequest("Invalid device ID format.");
+                return new ApiResponse<GenericResponse<Device>>
+                {
+                    Success = false,
+                    Message = "Invalid device ID format.",
+                    Data = new GenericResponse<Device> { Result = null, Status = "BadRequest" }
+                };
             }
 
             deviceId = validObjectId.ToString();
@@ -501,7 +749,12 @@ namespace AI.Sole.WebAPI.Controllers
             var device = await _context.Devices.Find(filter).FirstOrDefaultAsync();
             if (device == null)
             {
-                return NotFound();
+                return new ApiResponse<GenericResponse<Device>>
+                {
+                    Success = false,
+                    Message = "Device not found.",
+                    Data = new GenericResponse<Device> { Result = null, Status = "Notfound" }
+                };
             }
             device.UserId = dto.UserId ?? device.UserId;
             device.Location = dto.Location ?? device.Location;
@@ -515,7 +768,12 @@ namespace AI.Sole.WebAPI.Controllers
             device.ModifiedOn = DateTime.UtcNow;
             await _context.Devices.ReplaceOneAsync(filter, device);
 
-            return Ok(device);
+            return new ApiResponse<GenericResponse<Device>>
+            {
+                Success = false,
+                Message = string.Empty,
+                Data = new GenericResponse<Device> { Result = device, Status = "Ok" }
+            };
         }
         #endregion
 
@@ -524,11 +782,16 @@ namespace AI.Sole.WebAPI.Controllers
         [HttpDelete("devices/{deviceId}")]
         [Authorize(Roles = "doctor,systemAdmin")]
 
-        public async Task<IActionResult> DeleteDevice(string deviceId)
+        public async Task<ApiResponse<GenericResponse<string>>> DeleteDevice(string deviceId)
         {
             if (!ObjectId.TryParse(deviceId, out ObjectId validObjectId))
             {
-                return BadRequest("Invalid device ID format.");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "Invalid device ID format.",
+                    Data = new GenericResponse<string> { Result = null, Status = "BadRequest" }
+                };
             }
 
             deviceId = validObjectId.ToString();
@@ -536,12 +799,22 @@ namespace AI.Sole.WebAPI.Controllers
             var device = await _context.Devices.Find(filter).FirstOrDefaultAsync();
             if (device == null)
             {
-                return NotFound();
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "Device not found.",
+                    Data = new GenericResponse<string> { Result = null, Status = "Notfound" }
+                };
             }
 
             await _context.Devices.DeleteOneAsync(d => d.Id == deviceId);
 
-            return Ok("Device deleted successfully.");
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = "Device deleted!.",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
 
         #endregion
@@ -552,7 +825,7 @@ namespace AI.Sole.WebAPI.Controllers
         #region Register Doctor
         [HttpPost("doctors/register")]
         [AllowAnonymous]
-        public async Task<IActionResult> RegisterDoctor([FromBody] DoctorRegistrationDto dto)
+        public async Task<ApiResponse<GenericResponse<Doctor>>> RegisterDoctor([FromBody] DoctorRegistrationDto dto)
         {
             string role = "doctor";
             var user = new Doctor
@@ -574,38 +847,65 @@ namespace AI.Sole.WebAPI.Controllers
                 await _userManager.AddToRoleAsync(user, role);
                 //await _signInManager.SignInAsync(user, isPersistent: false);
                 // Optionally sign-in the user or confirm email
-                return Ok(new { userId = user.Id });
+                return new ApiResponse<GenericResponse<Doctor>>
+                {
+                    Success = true,
+                    Message = $"Doctor registration success.",
+                    Data = new GenericResponse<Doctor> { Result = user, Status = "Ok" }
+                };
             }
 
-            return BadRequest(result.Errors);
+            var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+
+            return new ApiResponse<GenericResponse<Doctor>>
+            {
+                Success = false,
+                Message = $"Doctor registration failed. {errorDescriptions}",
+                Data = new GenericResponse<Doctor> { Result = null, Status = "BadRequest" }
+            };
         }
         #endregion
 
         #region List Doctors
         [HttpGet("doctors")]
-        public async Task<IActionResult> GetDoctors()
+        public async Task<ApiResponse<GenericResponse<List<ApplicationUser>>>> GetDoctors()
         {
             var role = await _roleManager.FindByNameAsync("doctor");
             var roleFilter = Builders<ApplicationUser>.Filter.AnyEq(u => u.Roles, role.Id.ToString());
             var doctors = await _context.Users.Find(roleFilter).ToListAsync();
 
-            return Ok(doctors);
+            return new ApiResponse<GenericResponse<List<ApplicationUser>>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<List<ApplicationUser>> { Result = doctors, Status = "Ok" }
+            };
         }
         #endregion
 
         #region Get Doctor
         // GET: api/doctors/{doctorId}
         [HttpGet("doctors/{doctorId}")]
-        public async Task<IActionResult> GetDoctor(string doctorId)
+        public async Task<ApiResponse<GenericResponse<ApplicationUser>>> GetDoctor(string doctorId)
         {
             var role = await _roleManager.FindByNameAsync("doctor");
 
             var doctor = await _context.Users.Find(d => d.Id == Guid.Parse(doctorId) && d.Roles.Contains(role.Id.ToString())).FirstOrDefaultAsync();
             if (doctor == null)
             {
-                return NotFound();
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = "Doctor not found",
+                    Data = new GenericResponse<ApplicationUser> { Result = null, Status = "Notfound" }
+                };
             }
-            return Ok(doctor);
+            return new ApiResponse<GenericResponse<ApplicationUser>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<ApplicationUser> { Result = doctor, Status = "Ok" }
+            };
         }
         #endregion
 
@@ -615,7 +915,7 @@ namespace AI.Sole.WebAPI.Controllers
         [HttpPut("doctors/{doctorId}")]
         [Authorize(Roles = "doctor,systemAdmin")]
 
-        public async Task<IActionResult> UpdateDoctor(string doctorId, [FromBody] DoctorUpdateDto dto)
+        public async Task<ApiResponse<GenericResponse<Doctor>>> UpdateDoctor(string doctorId, [FromBody] DoctorUpdateDto dto)
         {
             var role = await _roleManager.FindByNameAsync("doctor");
 
@@ -629,7 +929,12 @@ namespace AI.Sole.WebAPI.Controllers
 
             if (doctor_doc == null && string.IsNullOrEmpty(doctor_app?.UserName))
             {
-                return NotFound($"No doctor found with ID {doctorId}");
+                return new ApiResponse<GenericResponse<Doctor>>
+                {
+                    Success = false,
+                    Message = $"No doctor found with ID {doctorId}",
+                    Data = new GenericResponse<Doctor> { Result = null, Status = "Notfound" }
+                };
             }
 
             // Retrieve the current user ID from the token
@@ -642,7 +947,12 @@ namespace AI.Sole.WebAPI.Controllers
             // Check if the user is an admin or the doctor themselves
             if (!roles.Contains("systemAdmin") && doctorId != currentUserId)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not allowed to update this doctor." });
+                return new ApiResponse<GenericResponse<Doctor>>
+                {
+                    Success = false,
+                    Message = "You are not allowed to update this doctor.",
+                    Data = new GenericResponse<Doctor> { Result = null, Status = "Forbidden" }
+                };
             }
 
             if (doctor_doc != null)
@@ -660,11 +970,21 @@ namespace AI.Sole.WebAPI.Controllers
 
                 if (result.IsAcknowledged && result.ModifiedCount == 1)
                 {
-                    return Ok(doctor_doc);
+                    return new ApiResponse<GenericResponse<Doctor>>
+                    {
+                        Success = true,
+                        Message = string.Empty,
+                        Data = new GenericResponse<Doctor> { Result = doctor_doc, Status = "Ok" }
+                    };
                 }
                 else
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Update operation failed");
+                    return new ApiResponse<GenericResponse<Doctor>>
+                    {
+                        Success = false,
+                        Message = "Update operation failed",
+                        Data = new GenericResponse<Doctor> { Result = null, Status = "InternalServerError" }
+                    };
                 }
             }
             else
@@ -691,11 +1011,21 @@ namespace AI.Sole.WebAPI.Controllers
                 }
                 else
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Update operation failed");
+                    return new ApiResponse<GenericResponse<Doctor>>
+                    {
+                        Success = false,
+                        Message = "Update operation failed",
+                        Data = new GenericResponse<Doctor> { Result = null, Status = "InternalServerError" }
+                    };
 
                 }
 
-                return Ok(doctor);
+                return new ApiResponse<GenericResponse<Doctor>>
+                {
+                    Success = true,
+                    Message = string.Empty,
+                    Data = new GenericResponse<Doctor> { Result = doctor, Status = "Ok" }
+                };
             }
 
 
@@ -706,14 +1036,19 @@ namespace AI.Sole.WebAPI.Controllers
         [HttpDelete("doctors/{doctorId}")]
         [Authorize(Roles = "doctor,systemAdmin")]
 
-        public async Task<IActionResult> DeleteDoctor(string doctorId)
+        public async Task<ApiResponse<GenericResponse<string>>> DeleteDoctor(string doctorId)
         {
             var role = await _roleManager.FindByNameAsync("doctor");
 
             var doctor = await _context.Users.Find(d => d.Id == Guid.Parse(doctorId) && d.Roles.Contains(role.Id.ToString())).FirstOrDefaultAsync();
             if (doctor == null)
             {
-                return NotFound($"No doctor found with ID {doctorId}");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = $"No doctor found with ID {doctorId}",
+                    Data = new GenericResponse<string> { Result = null, Status = "Notfound" }
+                };
             }
 
             // Retrieve the current user ID from the token
@@ -726,19 +1061,31 @@ namespace AI.Sole.WebAPI.Controllers
             // Check if the user is an admin or the doctor themselves
             if (!roles.Contains("systemAdmin") && doctorId != currentUserId)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not allowed to delete this doctor." });
+
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "You are not allowed to delete this doctor.",
+                    Data = new GenericResponse<string> { Result = null, Status = "Forbidden" }
+                };
+
             }
 
             await _context.Users.DeleteOneAsync(d => d.Id == Guid.Parse(doctorId));
 
-            return Ok(new {message="Doctor deleted!"});
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = "Doctor deleted!",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
         #endregion
 
         #region Register Patient
         [HttpPost("patients/register")]
         [AllowAnonymous]
-        public async Task<IActionResult> RegisterPatient([FromBody] PatientRegistrationDto dto)
+        public async Task<ApiResponse<GenericResponse<Patient>>> RegisterPatient([FromBody] PatientRegistrationDto dto)
         {
             string role = "patient";
             var user = new Patient
@@ -763,39 +1110,68 @@ namespace AI.Sole.WebAPI.Controllers
                 await _userManager.AddToRoleAsync(user, role);
                 //await _signInManager.SignInAsync(user, isPersistent: false);
                 // Optionally sign-in the user or confirm email
-                return Ok(new { userId = user.Id });
+                return new ApiResponse<GenericResponse<Patient>>
+                {
+                    Success = true,
+                    Message = $"Patient registration success.",
+                    Data = new GenericResponse<Patient> { Result = user, Status = "Ok" }
+                };
             }
 
-            return BadRequest(result.Errors);
+            var errorDescriptions = string.Join(", ", result.Errors.Select(e => e.Description));
+
+            return new ApiResponse<GenericResponse<Patient>>
+            {
+                Success = false,
+                Message = $"Patient registration failed. {errorDescriptions}",
+                Data = new GenericResponse<Patient> { Result = null, Status = "BadRequest" }
+            };
         }
         #endregion
+      
         #region List Patients
         [HttpGet("patients")]
         [Authorize(Roles = "doctor,systemAdmin")]
 
-        public async Task<IActionResult> GetPatients()
+        public async Task<ApiResponse<GenericResponse<List<ApplicationUser>>>> GetPatients()
         {
             var role = await _roleManager.FindByNameAsync("patient");
             var roleFilter = Builders<ApplicationUser>.Filter.AnyEq(u => u.Roles, role.Id.ToString());
             var patients = await _context.Users.Find(roleFilter).ToListAsync();
 
-            return Ok(patients);
+            return new ApiResponse<GenericResponse<List<ApplicationUser>>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<List<ApplicationUser>> { Result = patients, Status = "Ok" }
+            };
         }
 
         #endregion
+        
         #region Get Patient
         // GET: api/patients/{patientId}
         [HttpGet("patients/{patientId}")]
-        public async Task<IActionResult> GetPatient(string patientId)
+        public async Task<ApiResponse<GenericResponse<ApplicationUser>>> GetPatient(string patientId)
         {
             var role = await _roleManager.FindByNameAsync("patient");
 
             var patient = await _context.Users.Find(d => d.Id == Guid.Parse(patientId) && d.Roles.Contains(role.Id.ToString())).FirstOrDefaultAsync();
             if (patient == null)
             {
-                return NotFound();
+                return new ApiResponse<GenericResponse<ApplicationUser>>
+                {
+                    Success = false,
+                    Message = "Patient not found",
+                    Data = new GenericResponse<ApplicationUser> { Result = null, Status = "Notfound" }
+                };
             }
-            return Ok(patient);
+            return new ApiResponse<GenericResponse<ApplicationUser>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<ApplicationUser> { Result = patient, Status = "Ok" }
+            };
         }
         #endregion
 
@@ -804,7 +1180,7 @@ namespace AI.Sole.WebAPI.Controllers
         [HttpPut("patients/{patientId}")]
         [Authorize(Roles = "patient,systemAdmin")]
 
-        public async Task<IActionResult> UpdatePatient(string patientId, [FromBody] PatientUpdateDto dto)
+        public async Task<ApiResponse<GenericResponse<Patient>>> UpdatePatient(string patientId, [FromBody] PatientUpdateDto dto)
         {
             var role = await _roleManager.FindByNameAsync("patient");
 
@@ -818,7 +1194,12 @@ namespace AI.Sole.WebAPI.Controllers
 
             if (patient_doc == null && string.IsNullOrEmpty(patient_app?.UserName))
             {
-                return NotFound($"No patient found with ID {patientId}");
+                return new ApiResponse<GenericResponse<Patient>>
+                {
+                    Success = false,
+                    Message = $"No patient found with ID {patientId}",
+                    Data = new GenericResponse<Patient> { Result = null, Status = "Notfound" }
+                };
             }
 
             // Retrieve the current user ID from the token
@@ -831,7 +1212,12 @@ namespace AI.Sole.WebAPI.Controllers
             // Check if the user is an admin or the patient themselves
             if (!roles.Contains("systemAdmin") && patientId != currentUserId)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not allowed to update this patient." });
+                return new ApiResponse<GenericResponse<Patient>>
+                {
+                    Success = false,
+                    Message = "You are not allowed to update this patient.",
+                    Data = new GenericResponse<Patient> { Result = null, Status = "Forbidden" }
+                };
             }
 
             if (patient_doc != null)
@@ -853,11 +1239,21 @@ namespace AI.Sole.WebAPI.Controllers
 
                 if (result.IsAcknowledged && result.ModifiedCount == 1)
                 {
-                    return Ok(patient_doc);
+                    return new ApiResponse<GenericResponse<Patient>>
+                    {
+                        Success = true,
+                        Message = string.Empty,
+                        Data = new GenericResponse<Patient> { Result = patient_doc, Status = "Ok" }
+                    };
                 }
                 else
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Update operation failed");
+                    return new ApiResponse<GenericResponse<Patient>>
+                    {
+                        Success = false,
+                        Message = "Update operation failed",
+                        Data = new GenericResponse<Patient> { Result = null, Status = "InternalServerError" }
+                    };
                 }
             }
             else
@@ -886,11 +1282,20 @@ namespace AI.Sole.WebAPI.Controllers
                 }
                 else
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Update operation failed");
-
+                    return new ApiResponse<GenericResponse<Patient>>
+                    {
+                        Success = false,
+                        Message = "Update operation failed",
+                        Data = new GenericResponse<Patient> { Result = null, Status = "InternalServerError" }
+                    };
                 }
 
-                return Ok(patient);
+                return new ApiResponse<GenericResponse<Patient>>
+                {
+                    Success = true,
+                    Message = string.Empty,
+                    Data = new GenericResponse<Patient> { Result = patient, Status = "Ok" }
+                };
             }
 
 
@@ -901,14 +1306,19 @@ namespace AI.Sole.WebAPI.Controllers
         [HttpDelete("patients/{patientId}")]
         [Authorize(Roles = "patient,systemAdmin")]
 
-        public async Task<IActionResult> DeletePatient(string patientId)
+        public async Task<ApiResponse<GenericResponse<string>>> DeletePatient(string patientId)
         {
             var role = await _roleManager.FindByNameAsync("patient");
 
             var patient = await _context.Users.Find(d => d.Id == Guid.Parse(patientId) && d.Roles.Contains(role.Id.ToString())).FirstOrDefaultAsync();
             if (patient == null)
             {
-                return NotFound($"No patient found with ID {patientId}");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = $"No patient found with ID {patientId}",
+                    Data = new GenericResponse<string> { Result = null, Status = "Notfound" }
+                };
             }
 
             // Retrieve the current user ID from the token
@@ -921,55 +1331,91 @@ namespace AI.Sole.WebAPI.Controllers
             // Check if the user is an admin or the patient themselves
             if (!roles.Contains("systemAdmin") && patientId != currentUserId)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not allowed to delete this patient." });
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "You are not allowed to delete this patient.",
+                    Data = new GenericResponse<string> { Result = null, Status = "Forbidden" }
+                };
             }
 
             await _context.Users.DeleteOneAsync(d => d.Id == Guid.Parse(patientId));
 
-            return Ok(new{ message="Patient deleted!"});
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = "Patient deleted!",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
         #endregion
+        
         #endregion
 
         #region Setting Management
         [HttpGet("settings")]
 
         #region Get Settings
-        public async Task<IActionResult> GetSettings()
+        public async Task<ApiResponse<GenericResponse<UserSettings>>> GetSettings()
         {
             var userId = HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _userManager.FindByIdAsync(userId);
-            
+
             if (user == null)
             {
-                return NotFound("User not found.");
+                return new ApiResponse<GenericResponse<UserSettings>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<UserSettings> { Result = null, Status = "NotFound" }
+                };
             }
 
-            return Ok(user.Settings);
+            return new ApiResponse<GenericResponse<UserSettings>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<UserSettings> { Result = user.Settings, Status = "Ok" }
+            };
         }
         #endregion
 
         #region Update Settings
         [HttpPut("settings")]
-        public async Task<IActionResult> UpdateSettings([FromBody] UserSettingsDto dto)
+        public async Task<ApiResponse<GenericResponse<UserSettings>>> UpdateSettings([FromBody] UserSettingsDto dto)
         {
             var userId = HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _userManager.FindByIdAsync(userId);
 
             if (user == null)
             {
-                return NotFound("User not found.");
+                return new ApiResponse<GenericResponse<UserSettings>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<UserSettings> { Result = null, Status = "NotFound" }
+                };
             }
 
-            user.Settings = new UserSettings { EnableNotifications = dto.EnableNotifications,Theme=dto.Theme};
+            user.Settings = new UserSettings { EnableNotifications = dto.EnableNotifications, Theme = dto.Theme };
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to update user settings.");
+                return new ApiResponse<GenericResponse<UserSettings>>
+                {
+                    Success = false,
+                    Message = "Failed to update user settings.",
+                    Data = new GenericResponse<UserSettings> { Result = user.Settings, Status = "InternalServerError" }
+                };
             }
 
-            return Ok("Settings updated successfully.");
+            return new ApiResponse<GenericResponse<UserSettings>>
+            {
+                Success = true,
+                Message = "User settings updated successfully!",
+                Data = new GenericResponse<UserSettings> { Result = user.Settings, Status = "Ok" }
+            };
         }
         #endregion
 
@@ -980,24 +1426,39 @@ namespace AI.Sole.WebAPI.Controllers
         #region Send Sensor Data
         // POST: api/data
         [HttpPost("data")]
-        public async Task<IActionResult> SendSensorData([FromBody] SensorDataDto dto)
+        public async Task<ApiResponse<GenericResponse<SensorData>>> SendSensorData([FromBody] SensorDataDto dto)
         {
             var userId = HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null)
             {
-                return Unauthorized("User ID not found in token.");
+                return new ApiResponse<GenericResponse<SensorData>>
+                {
+                    Success = false,
+                    Message = "User ID not found in token.",
+                    Data = new GenericResponse<SensorData> { Result = null, Status = "Unauthorized" }
+                };
             }
 
             // check whether the device belongs to the user
             var device = await _context.Devices.Find(d => d.Id == dto.DeviceId).FirstOrDefaultAsync();
             if (device == null)
             {
-                return NotFound("Device not found.");
+                return new ApiResponse<GenericResponse<SensorData>>
+                {
+                    Success = false,
+                    Message = "Device not found",
+                    Data = new GenericResponse<SensorData> { Result = null, Status = "NotFound" }
+                };
             }
 
             if (device.UserId != userId)
             {
-                return StatusCode(StatusCodes.Status403Forbidden,"You do not have permission to update this device.");
+                return new ApiResponse<GenericResponse<SensorData>>
+                {
+                    Success = false,
+                    Message = "You do not have permission to update this device.",
+                    Data = new GenericResponse<SensorData> { Result = null, Status = "Forbidden" }
+                };
             }
             var sensorData = new SensorData
             {
@@ -1009,30 +1470,50 @@ namespace AI.Sole.WebAPI.Controllers
             };
             await _context.SensorsData.InsertOneAsync(sensorData);
 
-            return Ok(new { data = sensorData });
+            return new ApiResponse<GenericResponse<SensorData>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<SensorData> { Result = sensorData, Status = "Ok" }
+            };
         }
         #endregion
 
         #region Get All Sensor Data
         [HttpGet("data")]
-        public async Task<IActionResult> GetSensorData()
+        public async Task<ApiResponse<GenericResponse<List<SensorData>>>> GetSensorData()
         {
             var sensorData = await _context.SensorsData.Find(_ => true).ToListAsync();
-            return Ok(sensorData);
+            return new ApiResponse<GenericResponse<List<SensorData>>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<List<SensorData>> { Result = sensorData, Status = "Ok" }
+            };
         }
         #endregion
 
         #region Get Sensor Data by ID
         // GET: api/data/{id}
         [HttpGet("data/{id}")]
-        public async Task<IActionResult> GetSensorDataById(string id)
+        public async Task<ApiResponse<GenericResponse<SensorData>>> GetSensorDataById(string id)
         {
             var sensorData = await _context.SensorsData.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (sensorData == null)
             {
-                return NotFound();
+                return new ApiResponse<GenericResponse<SensorData>>
+                {
+                    Success = false,
+                    Message = "Sensor data not found",
+                    Data = new GenericResponse<SensorData> { Result = null, Status = "NotFound" }
+                };
             }
-            return Ok(sensorData);
+            return new ApiResponse<GenericResponse<SensorData>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<SensorData> { Result = sensorData, Status = "Ok" }
+            };
         }
         #endregion
 
@@ -1041,17 +1522,22 @@ namespace AI.Sole.WebAPI.Controllers
         #region Report Management
         #region Create Report
         [HttpPost("reports")]
-        public async Task<IActionResult> CreateReport([FromBody] ReportDto dto)
+        public async Task<ApiResponse<GenericResponse<Report>>> CreateReport([FromBody] ReportDto dto)
         {
             var userId = HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null)
             {
-                return Unauthorized("User ID not found in token.");
+                return new ApiResponse<GenericResponse<Report>>
+                {
+                    Success = false,
+                    Message = "User not found",
+                    Data = new GenericResponse<Report> { Result = null, Status = "NotFound" }
+                };
             }
             var report = new Report()
             {
                 Id = ObjectId.GenerateNewId().ToString(),
-                UserId = userId,    
+                UserId = userId,
                 Title = dto.Title,
                 Description = dto.Description,
                 PressurePoints = dto.PressurePoints,
@@ -1060,35 +1546,55 @@ namespace AI.Sole.WebAPI.Controllers
 
             await _context.Reports.InsertOneAsync(report);
 
-            return Ok(new { data = report });
+            return new ApiResponse<GenericResponse<Report>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<Report> { Result = report, Status = "Ok" }
+            };
         }
         #endregion
 
         #region List All Reports
         [HttpGet("reports")]
-        public async Task<IActionResult> GetReports()
+        public async Task<ApiResponse<GenericResponse<List<Report>>>> GetReports()
         {
             var reports = await _context.Reports.Find(_ => true).ToListAsync();
-            return Ok(reports);
+            return new ApiResponse<GenericResponse<List<Report>>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<List<Report>> { Result = reports, Status = "Ok" }
+            };
         }
         #endregion
 
         #region Get Report
         [HttpGet("reports/{reportId}")]
-        public async Task<IActionResult> GetReport(string reportId)
+        public async Task<ApiResponse<GenericResponse<Report>>> GetReport(string reportId)
         {
             var report = await _context.Reports.Find(r => r.Id == reportId).FirstOrDefaultAsync();
             if (report == null)
             {
-                return NotFound();
+                return new ApiResponse<GenericResponse<Report>>
+                {
+                    Success = false,
+                    Message = "Report not found!",
+                    Data = new GenericResponse<Report> { Result = report, Status = "Notfound" }
+                };
             }
-            return Ok(report);
+            return new ApiResponse<GenericResponse<Report>>
+            {
+                Success = true,
+                Message = string.Empty,
+                Data = new GenericResponse<Report> { Result = report, Status = "Ok" }
+            };
         }
         #endregion
 
         #region Update Report
         [HttpPut("reports/{reportId}")]
-        public async Task<IActionResult> UpdateReport(string reportId, [FromBody] ReportUpdateDto dto)
+        public async Task<ApiResponse<GenericResponse<string>>> UpdateReport(string reportId, [FromBody] ReportUpdateDto dto)
         {
             var filter = Builders<Report>.Filter.Eq(r => r.Id, reportId);
             var update = Builders<Report>.Update
@@ -1105,65 +1611,104 @@ namespace AI.Sole.WebAPI.Controllers
 
             if (result.ModifiedCount == 1)
             {
-                return Ok("Report updated successfully");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = true,
+                    Message = "Report updated successfully",
+                    Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+                };
             }
             else if (result.MatchedCount == 0)
             {
-                return NotFound($"No report found with ID {reportId}");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = $"No report found with ID {reportId}",
+                    Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+                };
             }
             else
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Update operation failed");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "Update operation failed",
+                    Data = new GenericResponse<string> { Result = null, Status = "InternalServerError" }
+                };
+
             }
         }
         #endregion
 
         #region Delete Report
         [HttpDelete("reports/{reportId}")]
-        public async Task<IActionResult> DeleteReport(string reportId)
+        public async Task<ApiResponse<GenericResponse<string>>> DeleteReport(string reportId)
         {
             var result = await _context.Reports.DeleteOneAsync(r => r.Id == reportId);
             if (result.DeletedCount == 0)
             {
-                return NotFound("Report not found");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = "Report not found!",
+                    Data = new GenericResponse<string> { Result = null, Status = "Notfound" }
+                };
             }
-            return Ok("Report deleted!");
+            return new ApiResponse<GenericResponse<string>>
+            {
+                Success = true,
+                Message = "Report deleted!",
+                Data = new GenericResponse<string> { Result = null, Status = "Ok" }
+            };
         }
         #endregion
         #endregion
 
-
         #region Notifications
         [HttpPost("notifications")]
-        public async Task<IActionResult> SendNotification([FromBody] NotificationDto notificationDto)
+        public async Task<ApiResponse<GenericResponse<string>>> SendNotification([FromBody] NotificationDto notificationDto)
         {
             if (notificationDto == null || string.IsNullOrEmpty(notificationDto.DeviceToken))
             {
-                return BadRequest("Invalid notification data.");
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = $"Invalid notification data.",
+                    Data = new GenericResponse<string> { Result = null, Status = "BadRequest" }
+                };
             }
 
             var message = new Message()
             {
-                
+
                 Notification = new Notification
                 {
                     Title = notificationDto.Title,
                     Body = notificationDto.Message
 
                 },
-               Token = notificationDto.DeviceToken
+                Token = notificationDto.DeviceToken
             };
 
             // Send the message using Firebase Messaging
             try
             {
                 string response = await FirebaseMessaging.DefaultInstance.SendAsync(message);
-                return Ok(new { message = "Notification sent successfully.", response });
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = true,
+                    Message = $"Notification sent successfully",
+                    Data = new GenericResponse<string> { Result = response, Status = "Ok" }
+                };
             }
             catch (FirebaseMessagingException e)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Failed to send message: {e.Message}");
-
+                return new ApiResponse<GenericResponse<string>>
+                {
+                    Success = false,
+                    Message = $"Failed to send message: {e.Message}",
+                    Data = new GenericResponse<string> { Result = null, Status = "InternalServerError" }
+                };
             }
         }
 

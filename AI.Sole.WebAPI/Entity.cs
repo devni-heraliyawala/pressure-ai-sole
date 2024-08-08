@@ -61,4 +61,17 @@ namespace AI.Sole.WebAPI
         public double RightFootPressure { get; set; }
     }
 
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; } = false;
+        public string Message { get; set; } = string.Empty;
+        public T Data { get; set; }
+    }
+
+    public class GenericResponse<T>
+    {
+        public T Result { get; set; }
+        public string Status { get; set; }
+    }
+
 }
